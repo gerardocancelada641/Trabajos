@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión | Sistema de Agendamiento CUTonalá</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --udg-green: #004d40; 
+            --udg-yellow: #fdd835; 
+            --udg-green-light: #00796b;
+            --dark-text: #2c3e50;
+            --light-bg: #ecf0f1;
+            --accent-red: #e74c3c;
+            --border-radius: 12px; 
+            --box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(-45deg, var(--light-bg), #dbe0e3, var(--light-bg), #dbe0e3);
+            background-size: 400% 400%;
+            color: var(--dark-text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+            animation: gradientBG 25s ease infinite; 
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .login-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            width: 100%;
+            max-width: 420px;
+            animation: fadeInBounce 1s ease-out forwards;
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        
+        @keyframes fadeInBounce {
+            0% { opacity: 0; transform: translateY(-50px); }
+            70% { opacity: 1; transform: translateY(5px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-container h2 {
+            color: var(--udg-green);
+            margin-bottom: 5px;
+            font-size: 1.8em;
+        }
+        
+        .login-container p {
+            color: #777;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            text-align: left;
+            position: relative; 
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--dark-text);
+            font-size: 0.95em;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px 10px 15px 45px; 
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-size: 1em;
+        }
+
+        .input-group input:focus {
+            border-color: var(--udg-green-light);
+            box-shadow: 0 0 0 4px rgba(0, 121, 107, 0.1);
+            outline: none;
+        }
+        
+        .input-icon {
+            position: absolute;
+            top: 40px; 
+            left: 15px;
+            color: var(--udg-green);
+            font-size: 1.1em;
+            pointer-events: none; 
+        }
+        
+        .login-button {
+            background-color: var(--udg-green);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: var(--border-radius);
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s, box-shadow 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .login-button:hover {
+            background-color: var(--udg-green-light);
+            box-shadow: 0 8px 20px rgba(0, 77, 64, 0.3);
+        }
+
+        .login-button:active {
+            transform: scale(0.98);
+        }
+
+        #error-message {
+            color: var(--accent-red);
+            background-color: rgba(231, 76, 60, 0.1);
+            border-left: 5px solid var(--accent-red);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+            display: none; 
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        
+        .help-link {
+            display: block;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: var(--udg-green);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .help-link:hover {
+            color: var(--udg-green-light);
+            text-decoration: underline;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <i class="fas fa-university" style="font-size: 3em; color: var(--udg-yellow); margin-bottom: 10px;"></i>
+        <h2>Acceso al Sistema</h2>
+        <p>Generador de Horarios CUTonalá | Ing. en CC</p>
+        
+        <form id="login-form">
+            <div class="input-group">
+                <i class="input-icon fas fa-user"></i>
+                <label for="username">Código o Usuario</label>
+                <input type="text" id="username" name="username" placeholder="Tu código de estudiante o empleado" required>
+            </div>
+            
+            <div class="input-group">
+                <i class="input-icon fas fa-lock"></i>
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" placeholder="Tu contraseña de acceso" required>
+            </div>
+            
+            <button type="submit" class="login-button">
+                <i class="fas fa-sign-in-alt"></i> Entrar al Sistema
+            </button>
+            
+            <p id="error-message">
+                <i class="fas fa-exclamation-circle"></i> Error: Usuario o Contraseña no válidos.
+            </p>
+        </form>
+        
+        <a href="manual.html" class="help-link">
+            <i class="fas fa-question-circle"></i> ¿Necesitas ayuda? Lee el Manual de Usuario
+        </a>
+        
+    </div>
+
+    <script>
+    const alumnosRegistrados = [
+        { codigo: "221938274", nip: "1234" },
+        { codigo: "221928123", nip: "5566" },
+        { codigo: "213847612", nip: "9999" },
+        { codigo: "219798852", nip: "0000" }
+    ];
+
+    document.getElementById('login-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const errorMessage = document.getElementById('error-message');
+
+        const alumnoEncontrado = alumnosRegistrados.find(
+            a => a.codigo === username && a.nip === password
+        );
+
+        if (alumnoEncontrado) {
+            errorMessage.style.display = 'none';
+
+            setTimeout(() => {
+                window.location.href = 'Agendador.html'; 
+            }, 500);
+
+        } else {
+            errorMessage.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                Error: Este usuario no está registrado en el sistema.
+            `;
+            errorMessage.style.display = 'block';
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Horarios | Ing. en CC CUTonalá</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --udg-green: #004d40;
+            --udg-yellow: #fdd835;
+            --udg-green-light: #00796b;
+            --dark-text: #2c3e50;
+            --light-bg: #ecf0f1;
+            --accent-red: #e74c3c;
+            --border-radius: 8px;
+            --box-shadow: 0 10px 30px rgba(0, 77, 64, 0.1);
+            --transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--light-bg);
+            color: var(--dark-text);
+            line-height: 1.6;
+            padding-bottom: 50px;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 40px auto;
+            padding: 40px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--udg-green);
+            margin-bottom: 10px;
+            font-size: 2.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h2 {
+            font-size: 1.6em;
+            color: var(--udg-green-light);
+            border-bottom: 2px solid var(--udg-yellow);
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 50px;
+            position: relative;
+            padding: 0 30px;
+        }
+
+        .step-line {
+            position: absolute;
+            height: 6px;
+            background-color: #bdc3c7;
+            width: calc(100% - 60px);
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1;
+            border-radius: 3px;
+        }
+
+        .step-line::before {
+            content: '';
+            position: absolute;
+            height: 100%;
+            width: 0;
+            background-color: var(--udg-green);
+            transition: width 0.6s ease-in-out;
+            border-radius: 3px;
+        }
+
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #ccc;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            z-index: 2;
+            transition: var(--transition);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .step.active {
+            background-color: var(--udg-green);
+            transform: scale(1.1);
+        }
+
+        .step.completed {
+            background-color: var(--udg-green-light);
+        }
+
+        .step-content {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: opacity 0.5s ease, max-height 0.7s ease-in-out, transform 0.5s ease;
+            transform: translateY(20px);
+            padding: 0;
+        }
+
+        .step-content.active {
+            opacity: 1;
+            max-height: 5000px;
+            transform: translateY(0);
+            padding: 20px 0;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: var(--udg-green);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--udg-green-light);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 77, 64, 0.3);
+        }
+
+        button:disabled {
+            background-color: #b9c2c7;
+            cursor: not-allowed;
+            opacity: 0.8;
+            transform: none;
+        }
+
+        #semester-select {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            border: 2px solid #ccc;
+            font-size: 1.1em;
+            margin-top: 10px;
+            transition: border-color 0.3s;
+        }
+
+        #semester-select:focus {
+            border-color: var(--udg-yellow);
+            outline: none;
+        }
+
+        .materia-card {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            background: #fcfcfc;
+            transition: var(--transition);
+        }
+
+        .materia-card:hover {
+            box-shadow: 0 6px 15px rgba(0, 77, 64, 0.1);
+        }
+
+        .materia-card h3 {
+            color: var(--udg-green);
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .turno-opciones {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .turno {
+            flex: 1;
+            padding: 15px;
+            border: 2px dashed #ccc;
+            border-radius: var(--border-radius);
+            background: #f5f8f8;
+            transition: border-color 0.3s;
+        }
+
+        .turno h4 {
+            color: var(--dark-text);
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .opcion-horario {
+            display: block;
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 8px 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s, border 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .opcion-horario:hover {
+            background-color: #e8f5e9;
+        }
+
+        input[type="radio"]:checked+.opcion-horario-label {
+            background-color: var(--udg-yellow);
+            border-color: var(--udg-green);
+            font-weight: bold;
+        }
+
+        input[type="radio"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+            accent-color: var(--udg-green);
+        }
+
+        #conflict-resolution {
+            border: 3px solid var(--accent-red);
+            padding: 25px;
+            border-radius: var(--border-radius);
+            background: #fef0f0;
+            margin-bottom: 30px;
+        }
+
+        .conflict-msg {
+            background-color: var(--accent-red);
+            color: white;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .success-msg {
+            border: 2px solid var(--udg-green);
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            color: var(--udg-green);
+            font-weight: 600;
+        }
+
+        .conflict-item {
+            padding: 20px;
+            border-bottom: 2px solid #fcc;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: opacity 0.5s ease;
+        }
+
+        .conflict-item h4 {
+            color: var(--accent-red);
+            font-size: 1.2em;
+        }
+
+        #resolution-options p,
+        #resolution-options label {
+            margin: 5px 0;
+            font-size: 0.95em;
+        }
+
+        #horario-table-container {
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .horario-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+            min-width: 800px;
+            background: white;
+        }
+
+        .horario-table th,
+        .horario-table td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 8px;
+            text-align: center;
+            height: 60px;
+            transition: background-color 0.1s;
+        }
+
+        .horario-table th {
+            background-color: var(--udg-green);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .horario-table .hora {
+            width: 100px;
+            background-color: #f4f6f7;
+            color: var(--udg-green-light);
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .clase {
+            color: var(--dark-text);
+            font-size: 0.9em;
+            font-weight: bold;
+            position: relative;
+            cursor: help;
+        }
+
+        .clase:hover {
+            opacity: 0.9;
+        }
+
+        .clase-materia {
+            display: block;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .clase-hora {
+            display: block;
+            font-size: 0.8em;
+            font-weight: normal;
+            margin-top: 3px;
+        }
+
+        .download-button-group {
+            display: flex;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="vertical-align: middle; margin-right: 10px; color: var(--udg-green);">
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" />
+                <path d="M7 2L7 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <path d="M17 2L17 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <path d="M3 10H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <path d="M9 14L7 16L9 18" stroke="var(--udg-yellow)" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                <path d="M15 14L17 16L15 18" stroke="var(--udg-yellow)" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            Agendamiento de Horarios CU Tonalá
+        </h1>
+        <p style="text-align: center; margin-bottom: 20px; color: #555;">Ingeniería en Ciencias Computacionales</p>
+
+        <div class="step-indicator">
+            <div class="step-line" id="step-line-1"></div>
+            <div class="step step-1 active" data-step="1">1</div>
+            <div class="step step-2" data-step="2">2</div>
+            <div class="step step-3" data-step="3">3</div>
+            <div class="step step-4" data-step="4">4</div>
+        </div>
+
+        <div id="step1-content" class="step-content active">
+            <h2><i class="fas fa-list-ol"></i> Paso 1: Selecciona tu Semestre</h2>
+            <p>Escoge el semestre para el cual deseas agendar materias:</p>
+            <select id="semester-select">
+                <option value="">-- Selecciona un Semestre --</option>
+                <option value="1">1er Semestre</option>
+                <option value="2">2do Semestre</option>
+                <option value="3">3er Semestre</option>
+                <option value="4">4to Semestre</option>
+                <option value="5">5to Semestre</option>
+                <option value="6">6to Semestre</option>
+                <option value="7">7mo Semestre</option>
+                <option value="8">8vo Semestre</option>
+            </select>
+            <div class="navigation justify-content-end">
+                <button onclick="nextStep(2)" disabled id="next-step-1">Siguiente <i
+                        class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+
+        <div id="step2-content" class="step-content">
+            <h2><i class="fas fa-calendar-alt"></i> Paso 2: Elige los Horarios</h2>
+            <p style="margin-bottom: 20px;">Selecciona un grupo de horario para **cada** materia. Recuerda que solo
+                debes tener un grupo seleccionado por materia.</p>
+            <div id="subjects-container">
+            </div>
+            <div style="text-align:center; margin-bottom:10px;">
+                <label style="margin-right:15px;">
+                    <input type="checkbox" id="prefer-matutino">
+                    Preferir matutino
+                </label>
+
+                <label>
+                    <input type="checkbox" id="prefer-vespertino">
+                    Preferir vespertino
+                </label>
+            </div>
+            <div style="margin-bottom: 20px; text-align:center;">
+                <button onclick="generarHorarioAutomatico()">
+                    Generar horario automático
+                </button>
+            </div>
+            <div class="navigation">
+                <button onclick="prevStep(1)"><i class="fas fa-arrow-left"></i> Anterior</button>
+                <button onclick="nextStep(3)" disabled id="next-step-2">Revisar Conflictos <i
+                        class="fas fa-clock"></i></button>
+            </div>
+        </div>
+
+        <div id="step3-content" class="step-content">
+            <h2><i class="fas fa-exclamation-triangle"></i> Paso 3: Resolución de Conflictos</h2>
+            <div id="conflict-resolution">
+            </div>
+            <div class="navigation">
+                <button onclick="prevStep(2)"><i class="fas fa-arrow-left"></i> Modificar Horarios</button>
+                <button onclick="nextStep(4)" disabled id="next-step-3">Finalizar y Generar Horario <i
+                        class="fas fa-check-circle"></i></button>
+            </div>
+        </div>
+
+        <div id="step4-content" class="step-content">
+            <h2><i class="fas fa-table"></i> Paso 4: Horario Final Generado</h2>
+            <p style="margin-bottom: 25px;">Este es tu horario sin conflictos. ¡Felicidades! Usa el botón de descarga.
+            </p>
+            <div id="opciones-horarios" style="text-align:center; margin-bottom:20px;"></div>
+            <div id="horario-table-container">
+            </div>
+            <div class="navigation justify-content-between">
+                <button onclick="prevStep(3)"><i class="fas fa-arrow-left"></i> Atrás</button>
+                <button onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> Descargar Horario (PDF)</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const planEstudios = {
+            "1": [
+                {
+                    "materia": "Precálculo", "grupos": [
+                        { "id": "1-01-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Miércoles: 08:00 - 10:00"] },
+                        { "id": "1-01-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 09:00 - 11:00", "Jueves: 09:00 - 11:00"] },
+                        { "id": "1-01-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 16:00 - 18:00", "Viernes: 16:00 - 18:00"] },
+                        { "id": "1-01-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }
+                    ]
+                },
+                {
+                    "materia": "Mecánica", "grupos": [
+                        { "id": "1-02-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] },
+                        { "id": "1-02-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Miércoles: 10:00 - 12:00"] },
+                        { "id": "1-02-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] },
+                        { "id": "1-02-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }
+                    ]
+                },
+                {
+                    "materia": "Desarrollo de Competencias Digitales", "grupos": [
+                        { "id": "1-03-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 11:00 - 13:00", "Jueves: 11:00 - 13:00"] },
+                        { "id": "1-03-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 12:00 - 14:00", "Viernes: 12:00 - 14:00"] },
+                        { "id": "1-03-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] },
+                        { "id": "1-03-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }
+                    ]
+                },
+                {
+                    "materia": "Filosofía de la Ciencia", "grupos": [
+                        { "id": "1-04-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 12:00 - 14:00", "Viernes: 12:00 - 14:00"] },
+                        { "id": "1-04-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 09:00 - 11:00", "Jueves: 09:00 - 11:00"] },
+                        { "id": "1-04-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 14:00 - 16:00", "Miércoles: 14:00 - 16:00"] },
+                        { "id": "1-04-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 18:00 - 20:00", "Jueves: 18:00 - 20:00"] }
+                    ]
+                },
+                {
+                    "materia": "Química General", "grupos": [
+                        { "id": "1-05-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 12:00 - 14:00", "Miércoles: 12:00 - 14:00"] },
+                        { "id": "1-05-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 10:00 - 12:00", "Viernes: 10:00 - 12:00"] },
+                        { "id": "1-05-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 15:00 - 17:00", "Jueves: 15:00 - 17:00"] },
+                        { "id": "1-05-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 18:00 - 20:00", "Viernes: 18:00 - 20:00"] }
+                    ]
+                },
+                {
+                    "materia": "Fundamentos de la Ciencia Computacional", "grupos": [
+                        { "id": "1-06-M1", "turno": "Matutino (8-14h)", "horarios": ["Jueves: 09:00 - 11:00", "Viernes: 09:00 - 11:00"] },
+                        { "id": "1-06-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Miércoles: 08:00 - 10:00"] },
+                        { "id": "1-06-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] },
+                        { "id": "1-06-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 18:00 - 20:00", "Martes: 18:00 - 20:00"] }
+                    ]
+                },
+                {
+                    "materia": "Programación Estructurada", "grupos": [
+                        { "id": "1-07-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 11:00 - 13:00", "Jueves: 11:00 - 13:00"] },
+                        { "id": "1-07-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 13:00 - 14:00", "Viernes: 13:00 - 14:00"] },
+                        { "id": "1-07-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 19:00 - 20:00", "Jueves: 19:00 - 20:00"] },
+                        { "id": "1-07-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 14:00 - 16:00", "Jueves: 14:00 - 16:00"] }
+                    ]
+                },
+            ],
+            "2": [
+                {
+                    "materia": "Cálculo Diferencial e Integral", "grupos": [
+                        { "id": "2-01-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Miércoles: 10:00 - 12:00"] },
+                        { "id": "2-01-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] },
+                        { "id": "2-01-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] },
+                        { "id": "2-01-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }
+                    ]
+                },
+                {
+                    "materia": "Electromagnetismo para Ingeniería", "grupos": [
+                        { "id": "2-02-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 08:00 - 10:00", "Viernes: 08:00 - 10:00"] },
+                        { "id": "2-02-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 09:00 - 11:00", "Jueves: 09:00 - 11:00"] },
+                        { "id": "2-02-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 16:00 - 18:00", "Jueves: 16:00 - 18:00"] },
+                        { "id": "2-02-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 19:00 - 20:00", "Miércoles: 19:00 - 20:00"] }
+                    ]
+                },
+                {
+                    "materia": "Electrónica Digital", "grupos": [
+                        { "id": "2-03-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 10:00 - 12:00", "Jueves: 10:00 - 12:00"] },
+                        { "id": "2-03-M2", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 11:00 - 13:00", "Viernes: 11:00 - 13:00"] },
+                        { "id": "2-03-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 14:00 - 16:00", "Miércoles: 14:00 - 16:00"] },
+                        { "id": "2-03-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 18:00 - 20:00", "Viernes: 18:00 - 20:00"] }
+                    ]
+                },
+                {
+                    "materia": "Administración", "grupos": [
+                        { "id": "2-04-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 12:00 - 14:00", "Jueves: 12:00 - 14:00"] },
+                        { "id": "2-04-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 09:00 - 11:00", "Viernes: 09:00 - 11:00"] },
+                        { "id": "2-04-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] },
+                        { "id": "2-04-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }
+                    ]
+                },
+                {
+                    "materia": "Programación Orientada a Objetos", "grupos": [
+                        { "id": "2-05-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 10:00 - 12:00", "Viernes: 10:00 - 12:00"] },
+                        { "id": "2-05-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Martes: 08:00 - 10:00"] },
+                        { "id": "2-05-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 15:00 - 17:00", "Jueves: 15:00 - 17:00"] },
+                        { "id": "2-05-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 18:00 - 20:00", "Viernes: 18:00 - 20:00"] }
+                    ]
+                },
+                {
+                    "materia": "Sistemas Operativos", "grupos": [
+                        { "id": "2-06-M1", "turno": "Matutino (8-14h)", "horarios": ["Jueves: 09:00 - 11:00", "Viernes: 09:00 - 11:00"] },
+                        { "id": "2-06-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 11:00 - 13:00", "Martes: 11:00 - 13:00"] },
+                        { "id": "2-06-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] },
+                        { "id": "2-06-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 18:00 - 20:00", "Martes: 18:00 - 20:00"] }
+                    ]
+                },
+                {
+                    "materia": "Organización Computacional", "grupos": [
+                        { "id": "2-07-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 13:00 - 14:00", "Jueves: 13:00 - 14:00"] },
+                        { "id": "2-07-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Miércoles: 10:00 - 12:00"] },
+                        { "id": "2-07-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] },
+                        { "id": "2-07-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 19:00 - 20:00", "Viernes: 19:00 - 20:00"] }
+                    ]
+                },
+                {
+                    "materia": "Formación Integral", "grupos": [
+                        { "id": "2-08-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Viernes: 08:00 - 10:00"] },
+                        { "id": "2-08-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 11:00 - 13:00", "Jueves: 11:00 - 13:00"] },
+                        { "id": "2-08-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] },
+                        { "id": "2-08-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 16:00 - 18:00", "Jueves: 16:00 - 18:00"] }
+                    ]
+                },
+            ],
+            "3": [
+                {
+                    "materia": "Álgebra Lineal", "grupos": [
+                        { "id": "3-01-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 12:00 - 14:00", "Miércoles: 12:00 - 14:00"] },
+                        { "id": "3-01-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] },
+                        { "id": "3-01-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] },
+                        { "id": "3-01-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 16:00 - 18:00", "Jueves: 16:00 - 18:00"] }
+                    ]
+                },
+                {
+                    "materia": "Probabilidad y Estadística", "grupos": [
+                        { "id": "3-02-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 09:00 - 11:00", "Viernes: 09:00 - 11:00"] },
+                        { "id": "3-02-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Jueves: 10:00 - 12:00"] },
+                        { "id": "3-02-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 15:00 - 17:00", "Jueves: 15:00 - 17:00"] },
+                        { "id": "3-02-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 19:00 - 20:00", "Viernes: 19:00 - 20:00"] }]
+                },
+                {
+                    "materia": "Propiedad Intelectual y Derechos de Autor", "grupos": [
+                        { "id": "3-03-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 10:00 - 12:00", "Jueves: 10:00 - 12:00"] },
+                        { "id": "3-03-M2", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 11:00 - 13:00", "Viernes: 11:00 - 13:00"] },
+                        { "id": "3-03-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 16:00 - 18:00", "Miércoles: 16:00 - 18:00"] },
+                        { "id": "3-03-V2", "turno": "Vespertino (14-20h)", "horarios": ["Jueves: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] }]
+                },
+                {
+                    "materia": "Programación Orientada a Eventos", "grupos": [
+                        { "id": "3-04-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Viernes: 08:00 - 10:00"] },
+                        { "id": "3-04-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 12:00 - 14:00", "Jueves: 12:00 - 14:00"] },
+                        { "id": "3-04-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 14:00 - 16:00", "Jueves: 14:00 - 16:00"] },
+                        { "id": "3-04-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 17:00 - 19:00", "Viernes: 17:00 - 19:00"] }]
+                },
+                {
+                    "materia": "Estructuras de Datos", "grupos": [
+                        { "id": "3-05-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 12:00 - 14:00", "Jueves: 12:00 - 14:00"] },
+                        { "id": "3-05-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 11:00 - 13:00", "Viernes: 11:00 - 13:00"] },
+                        { "id": "3-05-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] },
+                        { "id": "3-05-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 16:00 - 18:00", "Jueves: 16:00 - 18:00"] }]
+                },
+                {
+                    "materia": "Redes I", "grupos": [
+                        { "id": "3-06-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 09:00 - 11:00", "Jueves: 09:00 - 11:00"] },
+                        { "id": "3-06-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 13:00 - 14:00", "Viernes: 13:00 - 14:00"] },
+                        { "id": "3-06-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 14:00 - 16:00", "Miércoles: 14:00 - 16:00"] },
+                        { "id": "3-06-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 18:00 - 20:00", "Jueves: 18:00 - 20:00"] }]
+                },
+                {
+                    "materia": "Algoritmia", "grupos": [
+                        { "id": "3-07-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 09:00 - 11:00", "Miércoles: 09:00 - 11:00"] },
+                        { "id": "3-07-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 11:00 - 13:00", "Jueves: 11:00 - 13:00"] },
+                        { "id": "3-07-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 19:00 - 20:00", "Viernes: 19:00 - 20:00"] },
+                        { "id": "3-07-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 18:00 - 20:00", "Jueves: 18:00 - 20:00"] }]
+                },],
+
+            "4": [{ "materia": "Ecuaciones Diferenciales", "grupos": [{ "id": "4-01-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Miércoles: 08:00 - 10:00"] }, { "id": "4-01-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 11:00 - 13:00", "Jueves: 11:00 - 13:00"] }, { "id": "4-01-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 14:00 - 16:00", "Jueves: 14:00 - 16:00"] }, { "id": "4-01-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 17:00 - 19:00", "Viernes: 17:00 - 19:00"] }] }, { "materia": "Economía", "grupos": [{ "id": "4-02-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 10:00 - 12:00", "Viernes: 10:00 - 12:00"] }, { "id": "4-02-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 09:00 - 11:00", "Jueves: 09:00 - 11:00"] }, { "id": "4-02-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 15:00 - 17:00", "Jueves: 15:00 - 17:00"] }, { "id": "4-02-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 18:00 - 20:00", "Viernes: 18:00 - 20:00"] }] }, { "materia": "Bases de Datos", "grupos": [{ "id": "4-03-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] }, { "id": "4-03-M2", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 11:00 - 13:00", "Viernes: 11:00 - 13:00"] }, { "id": "4-03-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 16:00 - 18:00", "Miércoles: 16:00 - 18:00"] }, { "id": "4-03-V2", "turno": "Vespertino (14-20h)", "horarios": ["Jueves: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] }] }, { "materia": "Ingeniería de Software", "grupos": [{ "id": "4-04-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Viernes: 10:00 - 12:00"] }, { "id": "4-04-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 13:00 - 14:00", "Jueves: 13:00 - 14:00"] }, { "id": "4-04-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] }, { "id": "4-04-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }] }, { "materia": "Cultura de la Legalidad y Ética Profesional", "grupos": [{ "id": "4-05-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 12:00 - 14:00", "Jueves: 12:00 - 14:00"] }, { "id": "4-05-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Martes: 08:00 - 10:00"] }, { "id": "4-05-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] }, { "id": "4-05-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 17:00 - 19:00", "Viernes: 17:00 - 19:00"] }] }, { "materia": "Redes II", "grupos": [{ "id": "4-06-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 09:00 - 11:00", "Viernes: 09:00 - 11:00"] }, { "id": "4-06-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 10:00 - 12:00", "Jueves: 10:00 - 12:00"] }, { "id": "4-06-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 18:00 - 20:00", "Miércoles: 18:00 - 20:00"] }, { "id": "4-06-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 16:00 - 18:00", "Jueves: 16:00 - 18:00"] }] }, { "materia": "Optativa Abierta I", "grupos": [{ "id": "4-07-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 11:00 - 13:00", "Miércoles: 11:00 - 13:00"] }, { "id": "4-07-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 12:00 - 14:00", "Jueves: 12:00 - 14:00"] }, { "id": "4-07-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 17:00 - 19:00", "Viernes: 17:00 - 19:00"] }, { "id": "4-07-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 16:00 - 18:00", "Jueves: 16:00 - 18:00"] }] }],
+            "5": [{ "materia": "Matemáticas Avanzadas para Ingeniería", "grupos": [{ "id": "5-01-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 13:00 - 14:00", "Miércoles: 13:00 - 14:00"] }, { "id": "5-01-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 09:00 - 11:00", "Jueves: 09:00 - 11:00"] }, { "id": "5-01-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] }, { "id": "5-01-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 16:00 - 18:00", "Jueves: 16:00 - 18:00"] }] }, { "materia": "Acercamiento Transdisciplinario y Transcultural al Conocimiento", "grupos": [{ "id": "5-02-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Viernes: 08:00 - 10:00"] }, { "id": "5-02-M2", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 10:00 - 12:00", "Jueves: 10:00 - 12:00"] }, { "id": "5-02-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 15:00 - 17:00", "Jueves: 15:00 - 17:00"] }, { "id": "5-02-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 17:00 - 19:00", "Viernes: 17:00 - 19:00"] }] }, { "materia": "Programación Lógica y Funcional", "grupos": [{ "id": "5-03-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 12:00 - 14:00", "Jueves: 12:00 - 14:00"] }, { "id": "5-03-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Miércoles: 10:00 - 12:00"] }, { "id": "5-03-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 18:00 - 20:00", "Viernes: 18:00 - 20:00"] }, { "id": "5-03-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 15:00 - 17:00", "Jueves: 15:00 - 17:00"] }] }, { "materia": "Arquitectura de Computadoras", "grupos": [{ "id": "5-04-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 09:00 - 11:00", "Viernes: 09:00 - 11:00"] }, { "id": "5-04-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] }, { "id": "5-04-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 16:00 - 18:00", "Miércoles: 16:00 - 18:00"] }, { "id": "5-04-V2", "turno": "Vespertino (14-20h)", "horarios": ["Jueves: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] }] }, { "materia": "Análisis de Sistemas de Información", "grupos": [{ "id": "5-05-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Jueves: 10:00 - 12:00"] }, { "id": "5-05-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 11:00 - 13:00", "Viernes: 11:00 - 13:00"] }, { "id": "5-05-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] }, { "id": "5-05-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }] }, { "materia": "Formulación y Evaluación de Proyectos de Inversión", "grupos": [{ "id": "5-06-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 11:00 - 13:00", "Viernes: 11:00 - 13:00"] }, { "id": "5-06-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] }, { "id": "5-06-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 16:00 - 18:00", "Jueves: 16:00 - 18:00"] }, { "id": "5-06-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 18:00 - 20:00", "Viernes: 18:00 - 20:00"] }] }, { "materia": "Programación de Servicios Web", "grupos": [{ "id": "5-07-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 10:00 - 12:00", "Jueves: 10:00 - 12:00"] }, { "id": "5-07-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 12:00 - 14:00", "Miércoles: 12:00 - 14:00"] }, { "id": "5-07-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 14:00 - 16:00", "Miércoles: 14:00 - 16:00"] }, { "id": "5-07-V2", "turno": "Vespertino (14-20h)", "horarios": ["Jueves: 18:00 - 20:00", "Viernes: 18:00 - 20:00"] }] }],
+            "6": [{ "materia": "Liderazgo y Habilidades Directivas", "grupos": [{ "id": "6-01-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 12:00 - 14:00", "Viernes: 12:00 - 14:00"] }, { "id": "6-01-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] }, { "id": "6-01-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 15:00 - 17:00", "Miércoles: 15:00 - 17:00"] }, { "id": "6-01-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 18:00 - 20:00", "Jueves: 18:00 - 20:00"] }] }, { "materia": "Sistemas Embebidos", "grupos": [{ "id": "6-02-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 09:00 - 11:00", "Jueves: 09:00 - 11:00"] }, { "id": "6-02-M2", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 10:00 - 12:00", "Viernes: 10:00 - 12:00"] }, { "id": "6-02-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 14:00 - 16:00", "Jueves: 14:00 - 16:00"] }, { "id": "6-02-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 17:00 - 19:00", "Viernes: 17:00 - 19:00"] }] }, { "materia": "Bases de Datos Avanzadas", "grupos": [{ "id": "6-03-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 11:00 - 13:00", "Jueves: 11:00 - 13:00"] }, { "id": "6-03-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Miércoles: 08:00 - 10:00"] }, { "id": "6-03-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 16:00 - 18:00", "Viernes: 16:00 - 18:00"] }, { "id": "6-03-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 19:00 - 20:00", "Jueves: 19:00 - 20:00"] }] }, { "materia": "Diseño de Compiladores", "grupos": [{ "id": "6-04-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Miércoles: 10:00 - 12:00"] }, { "id": "6-04-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 13:00 - 14:00", "Viernes: 13:00 - 14:00"] }, { "id": "6-04-V1", "turno": "Vespertino (14-20h)", "horarios": ["Jueves: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] }, { "id": "6-04-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 17:00 - 19:00", "Miércoles: 17:00 - 19:00"] }] }, { "materia": "Simulación", "grupos": [{ "id": "6-05-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 11:00 - 13:00", "Jueves: 11:00 - 13:00"] }, { "id": "6-05-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 12:00 - 14:00", "Viernes: 12:00 - 14:00"] }, { "id": "6-05-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 14:00 - 16:00", "Jueves: 14:00 - 16:00"] }, { "id": "6-05-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 18:00 - 20:00", "Viernes: 18:00 - 20:00"] }] }, { "materia": "Especializante Selectiva I", "grupos": [{ "id": "6-06-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] }, { "id": "6-06-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 10:00 - 12:00", "Viernes: 10:00 - 12:00"] }, { "id": "6-06-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 16:00 - 18:00", "Miércoles: 16:00 - 18:00"] }, { "id": "6-06-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }] }, { "materia": "Especializante Selectiva II", "grupos": [{ "id": "6-07-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 09:00 - 11:00", "Viernes: 09:00 - 11:00"] }, { "id": "6-07-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 11:00 - 13:00", "Martes: 11:00 - 13:00"] }, { "id": "6-07-V1", "turno": "Vespertino (14-20h)", "horarios": ["Jueves: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] }, { "id": "6-07-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 19:00 - 20:00", "Viernes: 19:00 - 20:00"] }] }],
+            "7": [{ "materia": "Ingeniería Financiera", "grupos": [{ "id": "7-01-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Miércoles: 10:00 - 12:00"] }, { "id": "7-01-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 13:00 - 14:00", "Jueves: 13:00 - 14:00"] }, { "id": "7-01-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] }, { "id": "7-01-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }] }, { "materia": "Minería de Datos", "grupos": [{ "id": "7-02-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] }, { "id": "7-02-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 12:00 - 14:00", "Viernes: 12:00 - 14:00"] }, { "id": "7-02-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 16:00 - 18:00", "Jueves: 16:00 - 18:00"] }, { "id": "7-02-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 19:00 - 20:00", "Viernes: 19:00 - 20:00"] }] }, { "materia": "Criptografía", "grupos": [{ "id": "7-03-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 11:00 - 13:00", "Viernes: 11:00 - 13:00"] }, { "id": "7-03-M2", "turno": "Matutino (8-14h)", "horarios": ["Jueves: 08:00 - 10:00", "Lunes: 08:00 - 10:00"] }, { "id": "7-03-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 14:00 - 16:00", "Miércoles: 14:00 - 16:00"] }, { "id": "7-03-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 15:00 - 17:00", "Jueves: 15:00 - 17:00"] }] }, { "materia": "Computación Sustentable", "grupos": [{ "id": "7-04-M1", "turno": "Matutino (8-14h)", "horarios": ["Jueves: 12:00 - 14:00", "Viernes: 12:00 - 14:00"] }, { "id": "7-04-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 10:00 - 12:00", "Miércoles: 10:00 - 12:00"] }, { "id": "7-04-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 18:00 - 20:00", "Viernes: 18:00 - 20:00"] }, { "id": "7-04-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 18:00 - 20:00", "Jueves: 18:00 - 20:00"] }] }, { "materia": "Especializante Selectiva III", "grupos": [{ "id": "7-05-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 11:00 - 13:00", "Miércoles: 11:00 - 13:00"] }, { "id": "7-05-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 09:00 - 11:00", "Jueves: 09:00 - 11:00"] }, { "id": "7-05-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 18:00 - 20:00", "Jueves: 18:00 - 20:00"] }, { "id": "7-05-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 17:00 - 19:00", "Viernes: 17:00 - 19:00"] }] }, { "materia": "Especializante Selectiva IV", "grupos": [{ "id": "7-06-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 08:00 - 10:00", "Viernes: 08:00 - 10:00"] }, { "id": "7-06-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Jueves: 10:00 - 12:00"] }, { "id": "7-06-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 16:00 - 18:00", "Miércoles: 16:00 - 18:00"] }, { "id": "7-06-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 14:00 - 16:00", "Viernes: 14:00 - 16:00"] }] }],
+            "8": [{ "materia": "Interconexión de Redes Avanzada", "grupos": [{ "id": "8-01-M1", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 10:00 - 12:00", "Miércoles: 10:00 - 12:00"] }, { "id": "8-01-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] }, { "id": "8-01-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 17:00 - 19:00", "Viernes: 17:00 - 19:00"] }, { "id": "8-01-V2", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 15:00 - 17:00", "Jueves: 15:00 - 17:00"] }] }, { "materia": "Programación Paralela", "grupos": [{ "id": "8-02-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 12:00 - 14:00", "Viernes: 12:00 - 14:00"] }, { "id": "8-02-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 13:00 - 14:00", "Jueves: 13:00 - 14:00"] }, { "id": "8-02-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 18:00 - 20:00", "Jueves: 18:00 - 20:00"] }, { "id": "8-02-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 16:00 - 18:00", "Viernes: 16:00 - 18:00"] }] }, { "materia": "Traductores de Lenguajes", "grupos": [{ "id": "8-03-M1", "turno": "Matutino (8-14h)", "horarios": ["Jueves: 11:00 - 13:00", "Viernes: 11:00 - 13:00"] }, { "id": "8-03-M2", "turno": "Matutino (8-14h)", "horarios": ["Martes: 10:00 - 12:00", "Lunes: 10:00 - 12:00"] }, { "id": "8-03-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 18:00 - 20:00", "Miércoles: 18:00 - 20:00"] }, { "id": "8-03-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 14:00 - 16:00", "Jueves: 14:00 - 16:00"] }] }, { "materia": "Especializante Selectiva V", "grupos": [{ "id": "8-04-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 08:00 - 10:00", "Viernes: 08:00 - 10:00"] }, { "id": "8-04-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 11:00 - 13:00", "Jueves: 11:00 - 13:00"] }, { "id": "8-04-V1", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 15:00 - 17:00", "Viernes: 15:00 - 17:00"] }, { "id": "8-04-V2", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 17:00 - 19:00", "Jueves: 17:00 - 19:00"] }] }, { "materia": "Especializante Selectiva VI", "grupos": [{ "id": "8-05-M1", "turno": "Matutino (8-14h)", "horarios": ["Martes: 13:00 - 14:00", "Jueves: 13:00 - 14:00"] }, { "id": "8-05-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 12:00 - 14:00", "Miércoles: 12:00 - 14:00"] }, { "id": "8-05-V1", "turno": "Vespertino (14-20h)", "horarios": ["Lunes: 19:00 - 20:00", "Jueves: 19:00 - 20:00"] }, { "id": "8-05-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 19:00 - 20:00", "Viernes: 19:00 - 20:00"] }] }, { "materia": "Optativa Abierta II", "grupos": [{ "id": "8-06-M1", "turno": "Matutino (8-14h)", "horarios": ["Miércoles: 11:00 - 13:00", "Viernes: 11:00 - 13:00"] }, { "id": "8-06-M2", "turno": "Matutino (8-14h)", "horarios": ["Lunes: 08:00 - 10:00", "Jueves: 08:00 - 10:00"] }, { "id": "8-06-V1", "turno": "Vespertino (14-20h)", "horarios": ["Martes: 15:00 - 17:00", "Jueves: 15:00 - 17:00"] }, { "id": "8-06-V2", "turno": "Vespertino (14-20h)", "horarios": ["Miércoles: 16:00 - 18:00", "Viernes: 16:00 - 18:00"] }] }],
+
+        };
+
+        function hayConflicto(horarios1, horarios2) {
+            for (let h1 of horarios1) {
+                for (let h2 of horarios2) {
+
+                    if (h1.dia.toLowerCase() === h2.dia.toLowerCase()) {
+
+                        if (
+                            h1.inicio < h2.fin &&
+                            h2.inicio < h1.fin
+                        ) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function combinacionValida(combinacion) {
+            for (let i = 0; i < combinacion.length; i++) {
+                for (let j = i + 1; j < combinacion.length; j++) {
+                    if (hayConflicto(combinacion[i].horarios, combinacion[j].horarios)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function generarHorarioAutomatico() {
+            preferirMatutino = document.getElementById("prefer-matutino").checked;
+            preferirVespertino = document.getElementById("prefer-vespertino").checked;
+
+            console.log("Matutino:", preferirMatutino);
+            console.log("Vespertino:", preferirVespertino);
+            const semestre = document.getElementById("semester-select").value;
+            const materias = planEstudios[semestre];
+            let resultados = [];
+            function backtrack(index, combinacionActual) {
+                if (index === materias.length) {
+                    if (combinacionValida(combinacionActual)) {
+                        resultados.push([...combinacionActual]);
+                    }
+                    return;
+                }
+
+                for (let grupo of materias[index].grupos) {
+
+                    const grupoParseado = {
+                        ...grupo,
+                        horarios: grupo.horarios.map(h => parseSchedule(h))
+                    };
+
+                    combinacionActual.push(grupoParseado);
+
+                    if (combinacionValida(combinacionActual)) {
+                        backtrack(index + 1, combinacionActual);
+                    }
+
+                    combinacionActual.pop();
+                }
+            }
+            backtrack(0, []);
+            console.log("TOTAL COMBINACIONES:", resultados.length);
+            let evaluadas = resultados.map(c => {
+                let score = evaluarHorario(c);
+                console.log("Combinación evaluada:", score);
+                return {
+                    combinacion: c,
+                    score: score
+                };
+            });
+            evaluadas.sort((a, b) => a.score - b.score);
+            let top3 = evaluadas.slice(0, 3);
+            topHorarios = top3;
+            console.log("TOP 3:", top3);
+            if (top3.length > 0) {
+                mostrarOpcionesHorarios();
+            } else {
+                alert("No se encontró combinación válida");
+            }
+            console.log("Preferir matutino:", preferirMatutino);
+        }
+
+        function aplicarHorario(resultado) {
+            selectedSchedules = {};
+            resultado.forEach(grupo => {
+                const semestre = document.getElementById("semester-select").value;
+                const materias = planEstudios[semestre];
+                const materiaEncontrada = materias.find(m =>
+                    m.grupos.some(g => g.id === grupo.id)
+                );
+                const grupoReal = materiaEncontrada.grupos.find(g => g.id === grupo.id);
+                selectedSchedules[materiaEncontrada.materia] = {
+                    id: grupoReal.id,
+                    horarios: grupoReal.horarios.map(h => parseSchedule(h)),
+                    materia: materiaEncontrada.materia,
+                    turno: grupoReal.turno.includes('Matutino') ? 'Matutino' : 'Vespertino'
+                };
+            });
+            console.log("SCHEDULE FINAL:", selectedSchedules);
+            renderFinalSchedule();
+        }
+
+        function evaluarHorario(combinacion) {
+            let huecos = 0;
+            let penalizacion = 0;
+
+            const horariosPorDia = {};
+
+            combinacion.forEach(clase => {
+                clase.horarios.forEach(h => {
+
+                    if (!horariosPorDia[h.dia]) {
+                        horariosPorDia[h.dia] = [];
+                    }
+
+                    horariosPorDia[h.dia].push({ inicio: h.inicio, fin: h.fin });
+
+                });
+            });
+
+            combinacion.forEach(grupo => {
+
+                if (preferirVespertino) {
+                    if (grupo.turno.includes("Vespertino")) {
+                        penalizacion -= 5;
+                    } else {
+                        penalizacion += 5;
+                    }
+                }
+
+                if (preferirMatutino) {
+                    if (grupo.turno.includes("Matutino")) {
+                        penalizacion -= 5;
+                    } else {
+                        penalizacion += 5;
+                    }
+                }
+
+            });
+
+            for (let dia in horariosPorDia) {
+                let bloques = horariosPorDia[dia].sort((a, b) => a.inicio - b.inicio);
+
+                for (let i = 0; i < bloques.length - 1; i++) {
+                    let finActual = bloques[i].fin;
+                    let inicioSiguiente = bloques[i + 1].inicio;
+
+                    if (inicioSiguiente > finActual) {
+                        huecos += (inicioSiguiente - finActual);
+                    }
+                }
+            }
+
+            const scoreFinal = huecos + penalizacion;
+
+            console.log("Score final de combinación:", scoreFinal);
+
+            return scoreFinal;
+        }
+
+        function mostrarOpcionesHorarios() {
+            showStep(4);
+            const opcionesDiv = document.getElementById('opciones-horarios');
+            let html = `<h3>Selecciona una opción de horario</h3>`;
+            topHorarios.forEach((op, index) => {
+                html += `
+                <button onclick="seleccionarOpcion(${index})" style="margin:5px;">
+                    Opción ${index + 1}
+                    </button>
+                    `;
+            });
+            opcionesDiv.innerHTML = html;
+            seleccionarOpcion(0);
+        }
+
+        function seleccionarOpcion(index) {
+            const opcion = topHorarios[index].combinacion;
+            aplicarHorario(opcion);
+        }
+
+
+        let currentStep = 1;
+        let selectedSemester = null;
+        let selectedSchedules = {};
+        let conflicts = [];
+        let topHorarios = [];
+        let preferirMatutino = false;
+        let preferirVespertino = false;
+
+        const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+        const horas = Array.from({ length: 12 }, (_, i) => i + 8); 
+
+        function updateStepIndicator(stepNumber) {
+            const steps = document.querySelectorAll('.step');
+            const line = document.querySelector('.step-line');
+            const totalSteps = steps.length;
+
+            steps.forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 === stepNumber) {
+                    step.classList.add('active');
+                } else if (index + 1 < stepNumber) {
+                    step.classList.add('completed');
+                }
+            });
+
+            const percentage = ((stepNumber - 1) / (totalSteps - 1)) * 100;
+            setTimeout(() => {
+                line.style.width = `${percentage}%`;
+            }, 50);
+        }
+
+        function showStep(stepNumber) {
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step${stepNumber}-content`).classList.add('active');
+            updateStepIndicator(stepNumber);
+            currentStep = stepNumber;
+        }
+
+        function nextStep(stepNumber) {
+            document.querySelector('.container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            if (stepNumber === 2) {
+                selectedSemester = document.getElementById('semester-select').value;
+                if (!selectedSemester) return;
+                renderSubjects(selectedSemester);
+            } else if (stepNumber === 3) {
+                if (!validateSelections()) return;
+                checkAndRenderConflicts();
+            } else if (stepNumber === 4) {
+                renderFinalSchedule();
+            }
+            showStep(stepNumber);
+        }
+
+        function prevStep(stepNumber) {
+            document.querySelector('.container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (stepNumber === 2) {
+                renderSubjects(selectedSemester);
+            }
+            showStep(stepNumber);
+        }
+
+        document.getElementById('semester-select').addEventListener('change', (e) => {
+            const btn = document.getElementById('next-step-1');
+            btn.disabled = e.target.value === "";
+        });
+
+        function renderSubjects(semester) {
+            const subjects = planEstudios[semester];
+            const container = document.getElementById('subjects-container');
+            container.innerHTML = '';
+
+            subjects.forEach(subject => {
+                let cardHtml = `<div class="materia-card" data-materia="${subject.materia}">
+                    <h3><i class="fas fa-book"></i> ${subject.materia}</h3>
+                    <div class="turno-opciones">`;
+
+                const matutinoGroups = subject.grupos.filter(g => g.turno.includes('Matutino'));
+                const vespertinoGroups = subject.grupos.filter(g => g.turno.includes('Vespertino'));
+
+                cardHtml += `<div class="turno matutino" data-turno="Matutino">
+                    <h4><i class="fas fa-sun"></i> Turno Matutino (8:00 - 14:00)</h4>`;
+                matutinoGroups.forEach(grupo => {
+                    cardHtml += `<label class="opcion-horario">
+                        <input type="radio" id="${grupo.id}" name="schedule-${subject.materia}" value="${grupo.id}" 
+                            data-turno-group="Matutino"
+                            onchange="handleSelection('${subject.materia}', '${grupo.id}', '${grupo.horarios.join(';')}', 'Matutino')">
+                        <span class="opcion-horario-label">${grupo.horarios.join(' / ')}</span>
+                    </label>`;
+                });
+                cardHtml += `</div>`;
+
+                cardHtml += `<div class="turno vespertino" data-turno="Vespertino">
+                    <h4><i class="fas fa-cloud-moon"></i> Turno Vespertino (14:00 - 20:00)</h4>`;
+                vespertinoGroups.forEach(grupo => {
+                    cardHtml += `<label class="opcion-horario">
+                        <input type="radio" id="${grupo.id}" name="schedule-${subject.materia}" value="${grupo.id}" 
+                            data-turno-group="Vespertino"
+                            onchange="handleSelection('${subject.materia}', '${grupo.id}', '${grupo.horarios.join(';')}', 'Vespertino')">
+                        <span class="opcion-horario-label">${grupo.horarios.join(' / ')}</span>
+                    </label>`;
+                });
+                cardHtml += `</div></div></div>`;
+                container.innerHTML += cardHtml;
+            });
+
+            subjects.forEach(subj => {
+                if (selectedSchedules[subj.materia]) {
+                    const id = selectedSchedules[subj.materia].id;
+                    const input = document.getElementById(id);
+                    if (input) input.checked = true;
+                }
+            });
+
+            document.querySelectorAll(`input[name^="schedule-"]`).forEach(input => {
+                input.addEventListener('change', checkNextButtonStep2);
+            });
+            checkNextButtonStep2();
+        }
+
+        function handleSelection(materia, id, horariosString, turno) {
+            const horariosArray = horariosString.split(';').map(h => parseSchedule(h));
+            selectedSchedules[materia] = { id, horarios: horariosArray, materia: materia, turno: turno };
+
+            checkNextButtonStep2();
+        }
+
+        function checkNextButtonStep2() {
+            const subjects = planEstudios[selectedSemester];
+            if (!subjects) return false;
+            const allSelected = subjects.every(subj =>
+                selectedSchedules.hasOwnProperty(subj.materia) &&
+                document.querySelector(`input[name="schedule-${subj.materia}"]:checked`)
+            );
+            document.getElementById('next-step-2').disabled = !allSelected;
+            return allSelected;
+        }
+
+        function validateSelections() {
+            if (!checkNextButtonStep2()) {
+                alert("⛔ Por favor, selecciona un horario para todas las materias antes de continuar.");
+                return false;
+            }
+            return true;
+        }
+
+        function parseSchedule(scheduleString) {
+            const parts = scheduleString.split(': ');
+            const dia = parts[0].trim();
+            const [inicio, fin] = parts[1].split(' - ').map(t => parseInt(t.split(':')[0]));
+            return { dia, inicio, fin };
+        }
+
+        function checkAndRenderConflicts() {
+            conflicts = [];
+            const selectedClasses = Object.values(selectedSchedules);
+            const checks = {};
+
+            selectedClasses.forEach(clase => {
+                clase.horarios.forEach(h => {
+                    if (!checks[h.dia]) checks[h.dia] = [];
+                    checks[h.dia].push({ inicio: h.inicio, fin: h.fin, materia: clase.materia, id: clase.id });
+                });
+            });
+
+            for (const dia in checks) {
+                const daySchedules = checks[dia].sort((a, b) => a.inicio - b.inicio);
+
+                for (let i = 0; i < daySchedules.length; i++) {
+                    for (let j = i + 1; j < daySchedules.length; j++) {
+                        const classA = daySchedules[i];
+                        const classB = daySchedules[j];
+
+                        if (classB.inicio < classA.fin) {
+                            const conflictKey = [classA.materia, classB.materia].sort().join('-');
+                            if (!conflicts.some(c => c.key === conflictKey && c.dia === dia)) {
+                                conflicts.push({
+                                    key: conflictKey,
+                                    materia1: classA.materia,
+                                    materia2: classB.materia,
+                                    dia: dia,
+                                    horario1: `${classA.inicio}:00 - ${classA.fin}:00`,
+                                    horario2: `${classB.inicio}:00 - ${classB.fin}:00`,
+                                    id1: classA.id, 
+                                    id2: classB.id,
+                                    resolved: false
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            renderConflictResolution();
+        }
+
+        function renderConflictResolution() {
+            const container = document.getElementById('conflict-resolution');
+            container.innerHTML = '';
+
+            const unresolvedConflicts = conflicts.filter(c => !c.resolved);
+
+            if (unresolvedConflicts.length === 0 && conflicts.length > 0) {
+                container.innerHTML = `<div class="success-msg">
+                    <i class="fas fa-check-circle" style="font-size: 1.5em; margin-right: 10px;"></i>
+                    ¡Éxito! Todos los ${conflicts.length} conflictos detectados han sido **resueltos**.
+                </div>`;
+                document.getElementById('next-step-3').disabled = false;
+                return;
+            } else if (conflicts.length === 0) {
+                container.innerHTML = `<div class="success-msg">
+                    <i class="fas fa-check-circle" style="font-size: 1.5em; margin-right: 10px;"></i>
+                    ¡Excelente! No se detectó ningún conflicto en tu horario.
+                </div>`;
+                document.getElementById('next-step-3').disabled = false;
+                return;
+            }
+
+            let html = `<div class="conflict-msg">
+                <i class="fas fa-exclamation-triangle"></i> Tienes ${unresolvedConflicts.length} conflicto(s) **pendiente(s)**. Resuélvelos para continuar.
+            </div>`;
+
+            unresolvedConflicts.forEach((c, index) => {
+                const originalIndex = conflicts.findIndex(item => item.key === c.key && item.dia === c.dia && !item.resolved);
+
+                html += `<div class="materia-card conflict-item" id="conflict-card-${originalIndex}">
+                    <h4>Conflicto #${originalIndex + 1}: <span style="color: var(--dark-text);">${c.materia1}</span> vs <span style="color: var(--dark-text);">${c.materia2}</span></h4>
+                    <p style="margin-bottom: 10px;">Las clases se solapan el **${c.dia}** (${c.horario1} y ${c.horario2}).</p>
+                    
+                    <p style="margin-top: 15px; font-weight: bold; border-top: 1px dashed #ccc; padding-top: 10px;">1. ¿Qué materia deseas **CONSERVAR**?</p>
+                    
+                    <label style="margin-right: 20px;">
+                        <input type="radio" name="keep-conflict-${originalIndex}" value="${c.materia1}" 
+                            onclick="selectMateriaToKeep(${originalIndex}, '${c.materia1}', '${c.materia2}')">
+                        <span class="opcion-horario-label">Conservar **${c.materia1}**</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="keep-conflict-${originalIndex}" value="${c.materia2}" 
+                            onclick="selectMateriaToKeep(${originalIndex}, '${c.materia2}', '${c.materia1}')">
+                        <span class="opcion-horario-label">Conservar **${c.materia2}**</span>
+                    </label>
+                    <div id="resolution-options-${originalIndex}" style="margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 10px; display: none;">
+                        </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+            document.getElementById('next-step-3').disabled = true;
+        }
+
+        function selectMateriaToKeep(conflictIndex, materiaToKeep, materiaToDiscard) {
+            conflicts[conflictIndex].materiaToKeep = materiaToKeep;
+            conflicts[conflictIndex].materiaToDiscard = materiaToDiscard;
+
+            const optionsDiv = document.getElementById(`resolution-options-${conflictIndex}`);
+            optionsDiv.style.display = 'block';
+            optionsDiv.innerHTML = ''; 
+
+            const discardedSubjectData = planEstudios[selectedSemester].find(s => s.materia === materiaToDiscard);
+
+            let html = `<p style="font-weight: bold; margin-bottom: 15px;">2. Acción para <span style="color: ${getMateriaColor(materiaToDiscard)};">${materiaToDiscard}</span>:</p>`;
+
+            html += `<label class="opcion-horario">
+                <input type="radio" name="action-conflict-${conflictIndex}" value="eliminar" 
+                    onclick="finalizeConflictResolution(${conflictIndex}, 'eliminar', null)">
+                <span class="opcion-horario-label"><i class="fas fa-trash-alt"></i> Eliminar del horario (Agendar otro semestre)</span>
+            </label>`;
+
+            const allGroups = discardedSubjectData.grupos;
+
+            const conflictingGroupId = conflicts[conflictIndex].materia1 === materiaToDiscard ? conflicts[conflictIndex].id1 : conflicts[conflictIndex].id2;
+
+            const availableGroups = allGroups.filter(g => g.id !== conflictingGroupId);
+
+            if (availableGroups.length > 0) {
+                html += `<p style="margin-top: 10px; font-weight: bold;">Otras opciones de horario (Grupo Actual: ${conflictingGroupId}):</p>`;
+                availableGroups.forEach(grupo => {
+                    html += `<label class="opcion-horario" style="margin-left: 10px;">
+                        <input type="radio" name="action-conflict-${conflictIndex}" value="${grupo.id}" 
+                            onclick="finalizeConflictResolution(${conflictIndex}, 're-agenda', '${grupo.id}')">
+                        <span class="opcion-horario-label">Cambiar a: **${grupo.turno}** (${grupo.horarios.join(' / ')})</span>
+                    </label>`;
+                });
+            }
+
+            optionsDiv.innerHTML = html;
+        }
+
+
+        function finalizeConflictResolution(conflictIndex, action, newGroupId) {
+            const materiaToDiscard = conflicts[conflictIndex].materiaToDiscard;
+
+            if (action === 'eliminar') {
+                delete selectedSchedules[materiaToDiscard];
+            } else if (action === 're-agenda') {
+                const discardedSubject = planEstudios[selectedSemester].find(s => s.materia === materiaToDiscard);
+                const newGroup = discardedSubject.grupos.find(g => g.id === newGroupId);
+
+                selectedSchedules[materiaToDiscard] = {
+                    id: newGroup.id,
+                    horarios: newGroup.horarios.map(h => parseSchedule(h)),
+                    materia: materiaToDiscard,
+                    turno: newGroup.turno.includes('Matutino') ? 'Matutino' : 'Vespertino'
+                };
+            }
+
+            conflicts[conflictIndex].resolved = true;
+
+            const conflictCard = document.getElementById(`conflict-card-${conflictIndex}`);
+            if (conflictCard) {
+                conflictCard.style.opacity = '0.5';
+            }
+
+            setTimeout(() => {
+                checkAndRenderConflicts();
+                document.querySelector('.container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 500);
+        }
+
+        const colorPalette = ["#00796b", "#e65100", "#512da8", "#c2185b", "#00838f", "#7cb342", "#827717"];
+        function getMateriaColor(materia) {
+            let hash = 0;
+            for (let i = 0; i < materia.length; i++) {
+                hash = materia.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const index = Math.abs(hash) % colorPalette.length;
+            return colorPalette[index];
+        }
+
+        function renderFinalSchedule() {
+            const container = document.getElementById('horario-table-container');
+            const finalClasses = Object.values(selectedSchedules);
+            container.innerHTML = '';
+
+            const tableData = {};
+            dias.forEach(d => tableData[d] = {});
+
+            finalClasses.forEach(clase => {
+                const materiaColor = getMateriaColor(clase.materia);
+                clase.horarios.forEach(h => {
+                    const h_inicio = h.inicio;
+                    const h_fin = h.fin;
+
+                    for (let hora = h_inicio; hora < h_fin; hora += 1) {
+                        tableData[h.dia][hora] = {
+                            materia: clase.materia,
+                            color: materiaColor,
+                            fullStart: h_inicio,
+                            fullEnd: h_fin
+                        };
+                    }
+                });
+            });
+
+            let htmlTable = `<table class="horario-table" id="final-horario-table">
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Lunes</th>
+                        <th>Martes</th>
+                        <th>Miércoles</th>
+                        <th>Jueves</th>
+                        <th>Viernes</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            for (let h = 8; h < 20; h++) {
+                htmlTable += `<tr>
+                    <td class="hora">${h}:00 - ${h + 1}:00</td>`;
+                dias.forEach(dia => {
+                    const cellData = tableData[dia][h];
+
+                    if (cellData) {
+                        if (h === cellData.fullStart) {
+                            const rowspan = cellData.fullEnd - cellData.fullStart;
+
+                            htmlTable += `<td class="clase" rowspan="${rowspan}" style="background-color: ${cellData.color}20; border-left: 5px solid ${cellData.color};">
+                                <span class="clase-materia" style="color: ${cellData.color};">${cellData.materia}</span>
+                                <span class="clase-hora">${cellData.fullStart}:00 - ${cellData.fullEnd}:00</span>
+                            </td>`;
+                        }
+                    } else {
+                        htmlTable += `<td></td>`;
+                    }
+                });
+                htmlTable += `</tr>`;
+            }
+
+            htmlTable += `</tbody></table>`;
+            container.innerHTML = htmlTable;
+        }
+
+        window.jsPDF = window.jspdf.jsPDF;
+
+        function downloadPDF() {
+            const element = document.getElementById('horario-table-container');
+            if (!element) return;
+
+            const selectElement = document.getElementById('semester-select');
+            const semesterText = selectElement.options[selectElement.selectedIndex].text;
+            const filename = `Horario_CUTonala_${semesterText.replace(/\s/g, '_')}.pdf`;
+
+            const downloadButton = document.querySelector('#step4-content .navigation button:last-child');
+            const originalButtonContent = downloadButton.innerHTML;
+            downloadButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando PDF...';
+            downloadButton.disabled = true; 
+
+            const options = {
+                scale: 3, 
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            };
+
+            html2canvas(element, options)
+                .then(canvas => {
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                    const pdf = new jsPDF('l', 'mm', 'a4'); 
+
+                    const margin = 10;
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                    const canvasWidth = canvas.width;
+                    const canvasHeight = canvas.height;
+                    const ratio = canvasWidth / canvasHeight;
+
+                    let imgWidth = pdfWidth - 2 * margin;
+                    let imgHeight = imgWidth / ratio;
+                    let imgX = margin;
+                    let imgY = 30; 
+
+                    const maxImgHeight = pdfHeight - imgY - margin * 2;
+                    if (imgHeight > maxImgHeight) {
+                        imgHeight = maxImgHeight;
+                        imgWidth = imgHeight * ratio;
+                        imgX = (pdfWidth - imgWidth) / 2; 
+                    }
+
+                    pdf.setFontSize(22);
+                    pdf.setTextColor(getComputedStyle(document.documentElement).getPropertyValue('--udg-green'));
+                    pdf.text("Horario de Clases", pdfWidth / 2, 15, { align: 'center' });
+
+                    pdf.setFontSize(14);
+                    pdf.setTextColor('#555');
+                    pdf.text(`${semesterText} - Ing. en Ciencias Computacionales CU Tonalá`, pdfWidth / 2, 22, { align: 'center' });
+
+                    pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth, imgHeight);
+
+                    pdf.setFontSize(10);
+                    pdf.setTextColor('#999');
+                    pdf.text("Generado automáticamente por el Sistema de Agendamiento CUTonalá", pdfWidth / 2, pdfHeight - 5, { align: 'center' });
+
+                    pdf.save(filename);
+                })
+                .catch(error => {
+                    console.error("Error al generar el PDF:", error);
+                    alert("⛔ Hubo un error al generar el PDF. Asegúrate de que todos los campos estén seleccionados. Detalles del error: " + error.message);
+                })
+                .finally(() => {
+                    downloadButton.innerHTML = originalButtonContent;
+                    downloadButton.disabled = false;
+                });
+        }
+
+        function init() {
+            showStep(1);
+        }
+        init();
+    </script>
+</body>
+
+</html>
