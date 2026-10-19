@@ -1,10 +1,6 @@
-# Proyectos en Python
 # Portafolio.
-
-Este repositorio contiene proyectos desarrollados en Python como parte de mi aprendizaje en Ciencias Computacionales.
 Este repositorio contiene proyectos desarrollados tanto en Python como en HTML como parte de mi aprendizaje en Ciencias Computacionales.
 
-## Proyectos
 ## Proyectos:
 
 ### Generador de contraseñas
